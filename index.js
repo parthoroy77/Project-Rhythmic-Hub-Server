@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -24,19 +24,35 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-      const userCollection = client.db("rhythmicDB").collection("users");
-      
-      // users collection 
-      app.post('/users', async (req, res) => {
-          const user = req.body;
-          const query = { email: user.email };
-          const checkUser = await userCollection.findOne(query);
-          if (checkUser) {
-              return res.send('User Already Exists')
-          }
-          const result = await userCollection.insertOne(user);
-          res.send(result)
-      })
+    const userCollection = client.db("rhythmicDB").collection("users");
+
+    // users collection
+    app.get('/users', async (req, res) => {
+      const users = await userCollection.find().toArray();
+      res.send(users)
+    })
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email };
+      const checkUser = await userCollection.findOne(query);
+      if (checkUser) {
+        return res.send("User Already Exists");
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+    app.patch('/users/roleUpdate', async (req, res) => {
+      const id = req.query.id;
+      const role = req.query.role;
+      const query = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          role: role
+        }
+      }
+      const result = await userCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
