@@ -27,10 +27,10 @@ async function run() {
     const userCollection = client.db("rhythmicDB").collection("users");
     const classCollection = client.db("rhythmicDB").collection("classes");
     // users collection
-    app.get('/users', async (req, res) => {
+    app.get("/users", async (req, res) => {
       const users = await userCollection.find().toArray();
-      res.send(users)
-    })
+      res.send(users);
+    });
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
@@ -41,26 +41,54 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
-    app.patch('/users/roleUpdate', async (req, res) => {
+    app.patch("/users/roleUpdate", async (req, res) => {
       const id = req.query.id;
       const role = req.query.role;
       const query = { _id: new ObjectId(id) };
       const updatedDoc = {
         $set: {
-          role: role
-        }
-      }
+          role: role,
+        },
+      };
       const result = await userCollection.updateOne(query, updatedDoc);
       res.send(result);
-    })
+    });
 
     // class collections
-    app.post('/classes', async (req, res) => {
+    app.get("/classes", async (req, res) => {
+      const result = await classCollection.find().toArray();
+      res.send(result);
+    });
+    app.post("/classes", async (req, res) => {
       const newClass = req.body;
       const result = await classCollection.insertOne(newClass);
+      res.send(result);
+    });
+    app.patch("/classes/updateStatus", async (req, res) => {
+      const id = req.query.id;
+      const status = req.query.status;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: status
+        }
+      }
+      const result = await classCollection.updateOne(filter, updatedDoc);
       res.send(result)
+    });
+    app.patch('/classes/feedback', async (req, res) => {
+      const feedback = req.body;
+      const id = req.query.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          feedback: feedback
+        }
+      };
+      const options ={upsert: true}
+      const result = await classCollection.updateOne(filter, updatedDoc, options);
+      res.send(result);
     })
-
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
