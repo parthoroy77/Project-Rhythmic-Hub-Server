@@ -25,7 +25,7 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const userCollection = client.db("rhythmicDB").collection("users");
-
+    const classCollection = client.db("rhythmicDB").collection("classes");
     // users collection
     app.get('/users', async (req, res) => {
       const users = await userCollection.find().toArray();
@@ -52,6 +52,11 @@ async function run() {
       }
       const result = await userCollection.updateOne(query, updatedDoc);
       res.send(result);
+    })
+
+    // class collections
+    app.post('/classes', async (req, res) => {
+      
     })
 
     // Send a ping to confirm a successful connection
