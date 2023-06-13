@@ -71,7 +71,16 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
-    
+    app.get('/users/admin', verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      if (req.decoded.email !== email) {
+        return res.send({admin: false})
+      }
+      const query = { email: email }
+      const user = await userCollection.findOne(query);
+      const result = { admin: user?.role === 'admin' }
+      res.send({admin: result})
+    })
     app.patch("/users/roleUpdate", async (req, res) => {
       const id = req.query.id;
       const role = req.query.role;
