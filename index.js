@@ -71,15 +71,15 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
-    app.get('/users/admin', verifyJWT, async (req, res) => {
+    app.get('/users/role', verifyJWT, async (req, res) => {
       const email = req.query.email;
       if (req.decoded.email !== email) {
         return res.send({admin: false})
       }
       const query = { email: email }
       const user = await userCollection.findOne(query);
-      const result = { admin: user?.role === 'admin' }
-      res.send({admin: result})
+      const result = { role: user?.role }
+      res.send({result})
     })
     app.patch("/users/roleUpdate", async (req, res) => {
       const id = req.query.id;
@@ -99,6 +99,16 @@ async function run() {
       const result = await classCollection.find().toArray();
       res.send(result);
     });
+    app.get('/instructorClass', verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      console.log(email, req.decoded.email);
+      if (req.decoded.email !== email) {
+        return res.send([])
+      }
+      const query = { instructorEmail: email }
+      const result = await classCollection.find(query).toArray();
+      res.send(result)
+    })
     app.post("/classes", async (req, res) => {
       const newClass = req.body;
       const result = await classCollection.insertOne(newClass);
