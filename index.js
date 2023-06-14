@@ -203,6 +203,12 @@ async function run() {
       const result = await paymentCollection.find({ email: email }).toArray();
       res.send(result);
     });
+    app.get('/paymentHistory', verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      const filter = { email: email };
+      const result = await paymentCollection.find(filter).sort({ date: -1 }).toArray();
+      res.send(result)
+    })
     app.post("/payment", async (req, res) => {
       const payment = req.body.savedPayment;
       const insertedResult = await paymentCollection.insertOne(payment);
