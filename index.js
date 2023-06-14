@@ -61,6 +61,20 @@ async function run() {
       const users = await userCollection.find().toArray();
       res.send(users);
     });
+    app.get("/instructor", async (req, res) => {
+      const instructors = await userCollection.find({ role: 'instructor' }).toArray();
+      const instructorEmails = instructors.map(instructor => instructor.email)
+      const specificClasses = await classCollection
+        .aggregate([
+          {
+            $match: {
+              instructorEmail: { $in: instructorEmails }
+            },
+          },
+        ])
+        .toArray();
+      res.send(specificClasses);
+    });
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
@@ -71,16 +85,16 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
-    app.get('/users/role', verifyJWT, async (req, res) => {
+    app.get("/users/role", verifyJWT, async (req, res) => {
       const email = req.query.email;
       if (req.decoded.email !== email) {
-        return res.send({admin: false})
+        return res.send({ admin: false });
       }
-      const query = { email: email }
+      const query = { email: email };
       const user = await userCollection.findOne(query);
-      const result = { role: user?.role }
-      res.send({result})
-    })
+      const result = { role: user?.role };
+      res.send({ result });
+    });
     app.patch("/users/roleUpdate", async (req, res) => {
       const id = req.query.id;
       const role = req.query.role;
@@ -99,16 +113,16 @@ async function run() {
       const result = await classCollection.find().toArray();
       res.send(result);
     });
-    app.get('/instructorClass', verifyJWT, async (req, res) => {
+    app.get("/instructorClass", verifyJWT, async (req, res) => {
       const email = req.query.email;
       console.log(email, req.decoded.email);
       if (req.decoded.email !== email) {
-        return res.send([])
+        return res.send([]);
       }
-      const query = { instructorEmail: email }
+      const query = { instructorEmail: email };
       const result = await classCollection.find(query).toArray();
-      res.send(result)
-    })
+      res.send(result);
+    });
     app.post("/classes", async (req, res) => {
       const newClass = req.body;
       const result = await classCollection.insertOne(newClass);
