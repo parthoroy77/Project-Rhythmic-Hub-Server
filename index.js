@@ -45,7 +45,10 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
+
+
+
     const userCollection = client.db("rhythmicDB").collection("users");
     const classCollection = client.db("rhythmicDB").collection("classes");
     const paymentCollection = client.db("rhythmicDB").collection("payments");
@@ -66,24 +69,28 @@ async function run() {
       const users = await userCollection.find().toArray();
       res.send(users);
     });
-    app.get("/instructor", async (req, res) => {
-      const instructors = await userCollection
-        .find({ role: "instructor" })
-        .toArray();
-      const instructorEmails = instructors.map(
-        (instructor) => instructor.email
-      );
-      const specificClasses = await classCollection
-        .aggregate([
-          {
-            $match: {
-              instructorEmail: { $in: instructorEmails },
-            },
-          },
-        ])
-        .toArray();
-      res.send(specificClasses);
-    });
+    app.get('/instructors', async (req, res) => {
+      const instructors = await userCollection.find({ role: 'instructor' }).toArray();
+      res.send(instructors);
+    })
+    // app.get("/instructor", async (req, res) => {
+    //   const instructors = await userCollection
+    //     .find({ role: "instructor" })
+    //     .toArray();
+    //   const instructorEmails = instructors.map(
+    //     (instructor) => instructor.email
+    //   );
+    //   const specificClasses = await classCollection
+    //     .aggregate([
+    //       {
+    //         $match: {
+    //           instructorEmail: { $in: instructorEmails },
+    //         },
+    //       },
+    //     ])
+    //     .toArray();
+    //   res.send(specificClasses);
+    // });
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
@@ -94,16 +101,17 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
-    app.get("/users/role", verifyJWT, async (req, res) => {
+
+
+    app.get("/users/role",  async (req, res) => {
       const email = req.query.email;
-      if (req.decoded.email !== email) {
-        return res.send({ admin: false });
-      }
       const query = { email: email };
       const user = await userCollection.findOne(query);
       const result = { role: user?.role };
       res.send({ result });
     });
+
+
     app.patch("/users/roleUpdate", async (req, res) => {
       const id = req.query.id;
       const role = req.query.role;
@@ -116,6 +124,8 @@ async function run() {
       const result = await userCollection.updateOne(query, updatedDoc);
       res.send(result);
     });
+
+
     // selectedClass collection
     app.get("/selectedClass", verifyJWT, async (req, res) => {
       const email = req.query.email;
@@ -139,9 +149,16 @@ async function run() {
       const result = await classCollection.find().toArray();
       res.send(result);
     });
+    app.get("/popularClasses", async (req, res) => {
+      const result = await classCollection.find().sort({enrolled: -1}).limit(6).toArray();
+      res.send(result);
+    });
+    app.get("/popularInstructors", async (req, res) => {
+      const result = await classCollection.find().sort({enrolled: -1}).limit(6).toArray();
+      res.send(result);
+    });
     app.get("/instructorClass", verifyJWT, async (req, res) => {
       const email = req.query.email;
-      console.log(email, req.decoded.email);
       if (req.decoded.email !== email) {
         return res.send([]);
       }
@@ -216,14 +233,12 @@ async function run() {
       const deletedResult = await selectedClassCollection.deleteOne(query);
       const filter = { _id: new ObjectId(payment.classId) };
       const enrolledClass = await classCollection.findOne(filter);
-      console.log(enrolledClass);
       const updatedDoc = {
         $set: {
           enrolled: enrolledClass.enrolled + 1,
           availableSeats: enrolledClass.availableSeats - 1,
         },
       };
-      console.log(updatedDoc);
       const updatedResult = await classCollection.updateOne(filter, updatedDoc);
       res.send({ insertedResult, deletedResult, updatedResult });
     });
