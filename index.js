@@ -47,6 +47,7 @@ async function run() {
     await client.connect();
     const userCollection = client.db("rhythmicDB").collection("users");
     const classCollection = client.db("rhythmicDB").collection("classes");
+    const selectedClassCollection = client.db("rhythmicDB").collection("selectedClass");
 
     // JWT
     app.post("/jwt", async (req, res) => {
@@ -107,7 +108,12 @@ async function run() {
       const result = await userCollection.updateOne(query, updatedDoc);
       res.send(result);
     });
-
+    // selectedClass collection
+    app.post('/selectedClass', async (req, res) => {
+      const selectedClass = req.body;
+      const result = await selectedClassCollection.insertOne(selectedClass);
+      res.send(result)
+    })
     // class collections
     app.get("/classes", async (req, res) => {
       const result = await classCollection.find().toArray();
