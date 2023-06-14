@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT || 5000;
@@ -47,7 +48,9 @@ async function run() {
     await client.connect();
     const userCollection = client.db("rhythmicDB").collection("users");
     const classCollection = client.db("rhythmicDB").collection("classes");
-    const selectedClassCollection = client.db("rhythmicDB").collection("selectedClass");
+    const selectedClassCollection = client
+      .db("rhythmicDB")
+      .collection("selectedClass");
 
     // JWT
     app.post("/jwt", async (req, res) => {
@@ -63,13 +66,17 @@ async function run() {
       res.send(users);
     });
     app.get("/instructor", async (req, res) => {
-      const instructors = await userCollection.find({ role: 'instructor' }).toArray();
-      const instructorEmails = instructors.map(instructor => instructor.email)
+      const instructors = await userCollection
+        .find({ role: "instructor" })
+        .toArray();
+      const instructorEmails = instructors.map(
+        (instructor) => instructor.email
+      );
       const specificClasses = await classCollection
         .aggregate([
           {
             $match: {
-              instructorEmail: { $in: instructorEmails }
+              instructorEmail: { $in: instructorEmails },
             },
           },
         ])
@@ -109,23 +116,23 @@ async function run() {
       res.send(result);
     });
     // selectedClass collection
-    app.get('/selectedClass', verifyJWT, async (req, res) => {
+    app.get("/selectedClass", verifyJWT, async (req, res) => {
       const email = req.query.email;
       const filter = { email: email };
       const result = await selectedClassCollection.find(filter).toArray();
       res.send(result);
-    })
-    app.post('/selectedClass', async (req, res) => {
+    });
+    app.post("/selectedClass", async (req, res) => {
       const selectedClass = req.body;
       const result = await selectedClassCollection.insertOne(selectedClass);
-      res.send(result)
-    })
-    app.delete('/deleteClass', async (req, res) => {
+      res.send(result);
+    });
+    app.delete("/deleteClass", async (req, res) => {
       const id = req.query.id;
       const filter = { _id: new ObjectId(id) };
       const result = await selectedClassCollection.deleteOne(filter);
-      res.send(result)
-    })
+      res.send(result);
+    });
     // class collections
     app.get("/classes", async (req, res) => {
       const result = await classCollection.find().toArray();
@@ -175,6 +182,20 @@ async function run() {
       );
       res.send(result);
     });
+
+    // payment
+
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({ clientSecret: paymentIntent.client_secret });
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
