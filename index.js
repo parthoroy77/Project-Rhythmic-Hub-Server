@@ -109,9 +109,21 @@ async function run() {
       res.send(result);
     });
     // selectedClass collection
+    app.get('/selectedClass', verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      const filter = { email: email };
+      const result = await selectedClassCollection.find(filter).toArray();
+      res.send(result);
+    })
     app.post('/selectedClass', async (req, res) => {
       const selectedClass = req.body;
       const result = await selectedClassCollection.insertOne(selectedClass);
+      res.send(result)
+    })
+    app.delete('/deleteClass', async (req, res) => {
+      const id = req.query.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await selectedClassCollection.deleteOne(filter);
       res.send(result)
     })
     // class collections
