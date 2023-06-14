@@ -48,9 +48,8 @@ async function run() {
     await client.connect();
     const userCollection = client.db("rhythmicDB").collection("users");
     const classCollection = client.db("rhythmicDB").collection("classes");
-    const selectedClassCollection = client
-      .db("rhythmicDB")
-      .collection("selectedClass");
+    const paymentCollection = client.db("rhythmicDB").collection("payments");
+    const selectedClassCollection = client.db("rhythmicDB").collection("selectedClass");
 
     // JWT
     app.post("/jwt", async (req, res) => {
@@ -183,7 +182,9 @@ async function run() {
       res.send(result);
     });
 
-    // payment
+
+
+    // payment intent
 
     app.post("/create-payment-intent", verifyJWT, async (req, res) => {
       const { price } = req.body;
@@ -195,6 +196,26 @@ async function run() {
       });
       res.send({ clientSecret: paymentIntent.client_secret });
     });
+
+    // payment api 
+    app.post('/payment', async (req, res) => {
+      const payment = req.body.savedPayment;
+      const insertedResult = await paymentCollection.insertOne(payment);
+      const query = { _id: new ObjectId(payment._id) }
+      const deletedResult = await selectedClassCollection.deleteOne(query);
+      const filter = {_id: new ObjectId(payment.classId)}
+      const enrolledClass = await classCollection.findOne(filter);
+      console.log(enrolledClass);
+      const updatedDoc = {
+        $set: {
+          enrolled: enrolledClass.enrolled + 1,
+          availableSeats: enrolledClass.availableSeats - 1
+        }
+      }
+      console.log(updatedDoc);
+      const updatedResult = await classCollection.updateOne(filter, updatedDoc)
+      res.send({insertedResult, deletedResult, updatedResult})
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
